@@ -6,9 +6,11 @@ import Avatar from "../components/Avatar";
 import BackButton from "../components/BackButton";
 import FileUploadField from "../components/FileUploadField";
 import StarRating from "../components/StarRating";
+import TrailMapModal from "../components/TrailMapModal";
 import UserProfilePreview from "../components/UserProfilePreview";
 import { formatReviewCount } from "../utils/trails";
 import { useAuth } from "../context/AuthContext";
+import { hasRouteMap } from "../utils/trailMap";
 import { getUserDisplayName } from "../utils/user";
 
 export default function TrailDetailsPage() {
@@ -28,6 +30,7 @@ export default function TrailDetailsPage() {
   const [submittingFavorite, setSubmittingFavorite] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   useEffect(() => {
     async function loadTrail() {
@@ -38,6 +41,7 @@ export default function TrailDetailsPage() {
         const { data } = await api.get(`/trails/${id}`, authConfig(token));
         setTrail(data);
         setRating(Number(data.userRating || 0));
+        setShowMapModal(false);
       } catch (_error) {
         setError("Ne mogu da ucitam detalje staze.");
       } finally {
@@ -180,6 +184,7 @@ export default function TrailDetailsPage() {
 
   const averageRating = Number(trail.average_rating || 0);
   const ratingCount = Number(trail.rating_count || 0);
+  const trailHasMap = hasRouteMap(trail.route_map_data);
 
   return (
     <div className="page-stack">
@@ -226,24 +231,15 @@ export default function TrailDetailsPage() {
           <p>
             Kampovanje: {trail.camping_allowed ? "Dozvoljeno" : "Nije dozvoljeno"}
           </p>
-          <p>Dodao admin: {trail.created_by_username}</p>
-          {canFavorite && (
+          {trailHasMap && (
             <>
               <button
                 type="button"
                 className="secondary-button summary-action-button"
-                onClick={handleFavoriteToggle}
-                disabled={submittingFavorite}
+                onClick={() => setShowMapModal(true)}
               >
-                {submittingFavorite
-                  ? "Cuvanje..."
-                  : trail.is_favorite
-                    ? "Ukloni iz omiljenih"
-                    : "Dodaj u omiljene"}
+                Mapa staze
               </button>
-              {favoriteMessage && (
-                <p className="summary-inline-note">{favoriteMessage}</p>
-              )}
             </>
           )}
         </div>
@@ -298,6 +294,24 @@ export default function TrailDetailsPage() {
             </button>
 
             {ratingMessage && <p className="form-success">{ratingMessage}</p>}
+
+            {canFavorite && (
+              <>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handleFavoriteToggle}
+                  disabled={submittingFavorite}
+                >
+                  {submittingFavorite
+                    ? "Cuvanje..."
+                    : trail.is_favorite
+                      ? "Ukloni iz omiljenih"
+                      : "Dodaj u omiljene"}
+                </button>
+                {favoriteMessage && <p className="form-success">{favoriteMessage}</p>}
+              </>
+            )}
           </div>
         ) : (
           <div className="panel">
@@ -409,6 +423,13 @@ export default function TrailDetailsPage() {
           </div>
         </div>
       </section>
+
+      <TrailMapModal
+        open={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        routeMap={trail.route_map_data}
+        trailName={trail.name}
+      />
     </div>
   );
 }

@@ -15,6 +15,11 @@ import { getUserIdentityById } from "../userProfile.js";
 
 const router = express.Router();
 
+const MAP_WIDTH = 1000;
+const MAP_HEIGHT = 700;
+const MAX_ROUTE_STROKES = 24;
+const MAX_ROUTE_POINTS = 4000;
+
 router.use(attachUserIfPresent);
 
 function parseBoolean(value) {
@@ -48,6 +53,75 @@ function parseIdList(value) {
   }
 
   return [];
+}
+
+function clampMapCoordinate(value, max) {
+  return Math.min(max, Math.max(0, Number(value.toFixed(2))));
+}
+
+function parseRouteMap(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  let parsed = value;
+
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (_error) {
+      throw new Error("Skica rute nije u ispravnom formatu.");
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.strokes)) {
+    throw new Error("Skica rute nije u ispravnom formatu.");
+  }
+
+  const normalizedStrokes = [];
+  let totalPoints = 0;
+
+  for (const stroke of parsed.strokes.slice(0, MAX_ROUTE_STROKES)) {
+    if (!stroke || !Array.isArray(stroke.points)) {
+      continue;
+    }
+
+    const normalizedPoints = [];
+
+    for (const point of stroke.points) {
+      const x = Number(point?.x);
+      const y = Number(point?.y);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        continue;
+      }
+
+      normalizedPoints.push({
+        x: clampMapCoordinate(x, MAP_WIDTH),
+        y: clampMapCoordinate(y, MAP_HEIGHT),
+      });
+      totalPoints += 1;
+
+      if (totalPoints > MAX_ROUTE_POINTS) {
+        throw new Error("Skica rute je prevelika za cuvanje.");
+      }
+    }
+
+    if (normalizedPoints.length >= 2) {
+      normalizedStrokes.push({
+        points: normalizedPoints,
+      });
+    }
+  }
+
+  if (!normalizedStrokes.length) {
+    return null;
+  }
+
+  return {
+    version: 1,
+    strokes: normalizedStrokes,
+  };
 }
 
 async function updateAverageRating(trailId, client = pool) {
@@ -306,6 +380,13 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
       description,
       terrain_ids,
     } = req.body;
+    let routeMapData = null;
+
+    try {
+      routeMapData = parseRouteMap(req.body.route_map_data);
+    } catch (routeMapError) {
+      return res.status(400).json({ message: routeMapError.message });
+    }
 
     if (
       !name ||
@@ -345,9 +426,26 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
           ecological_status_id,
           camping_allowed,
           description,
+          route_map_data,
           created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $13,
+          $14,
+          $15
+        )
         RETURNING id
       `,
       [
@@ -364,6 +462,7 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
         Number(ecological_status_id),
         parseBoolean(camping_allowed),
         description?.trim() || null,
+        routeMapData,
         req.user.id,
       ]
     );

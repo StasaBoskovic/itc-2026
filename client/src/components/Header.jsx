@@ -25,21 +25,26 @@ export default function Header() {
         </span>
       </NavLink>
 
-      <nav className="main-nav">
-        {user && (
-          <NavLink to="/trails" className={linkClassName}>
-            Staze
-          </NavLink>
-        )}
+      <div className="header-side">
+        <nav className="main-nav">
+          {user && (
+            <NavLink to="/trails" className={linkClassName}>
+              Staze
+            </NavLink>
+          )}
 
-        {user?.role === "admin" && (
-          <NavLink to="/admin" className={linkClassName}>
-            Dodaj stazu
-          </NavLink>
-        )}
+          {user?.role === "admin" && (
+            <NavLink to="/admin" className={linkClassName}>
+              Dodaj stazu
+            </NavLink>
+          )}
+        </nav>
 
         {user ? (
-          <div className="auth-strip">
+          <div className="header-account-panel">
+            <button type="button" className="secondary-button header-logout-button" onClick={logout}>
+              Odjava
+            </button>
             <NavLink to="/profile" className="user-pill user-pill-link">
               <Avatar user={user} size="tiny" />
               <span className="user-pill-copy">
@@ -47,9 +52,6 @@ export default function Header() {
                 <small>{user.role === "admin" ? "Admin nalog" : "Korisnicki profil"}</small>
               </span>
             </NavLink>
-            <button type="button" className="secondary-button" onClick={logout}>
-              Odjava
-            </button>
           </div>
         ) : (
           <div className="auth-strip">
@@ -61,7 +63,7 @@ export default function Header() {
             </NavLink>
           </div>
         )}
-      </nav>
+      </div>
     </header>
   );
 }

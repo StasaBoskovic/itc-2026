@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { api, authConfig } from "../api";
 import BackButton from "../components/BackButton";
 import FileUploadField from "../components/FileUploadField";
+import TrailRouteMap from "../components/TrailRouteMap";
 import { useAuth } from "../context/AuthContext";
+import { hasRouteMap } from "../utils/trailMap";
 
 const initialForm = {
   name: "",
@@ -31,6 +33,7 @@ export default function AdminPage() {
   const [statuses, setStatuses] = useState([]);
   const [selectedTerrainIds, setSelectedTerrainIds] = useState([]);
   const [images, setImages] = useState([]);
+  const [routeMap, setRouteMap] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,6 +86,10 @@ export default function AdminPage() {
         formData.append("images", image);
       });
 
+      if (hasRouteMap(routeMap)) {
+        formData.append("route_map_data", JSON.stringify(routeMap));
+      }
+
       const { data } = await api.post("/trails", formData, {
         ...authConfig(token),
         headers: {
@@ -95,6 +102,7 @@ export default function AdminPage() {
       setForm(initialForm);
       setSelectedTerrainIds([]);
       setImages([]);
+      setRouteMap(null);
       navigate(`/trails/${data.trailId}`);
     } catch (submissionError) {
       setError(
@@ -332,6 +340,18 @@ export default function AdminPage() {
             buttonLabel="Izaberi slike"
             placeholder="Dodaj naslovne i pratece slike staze."
             onChange={(event) => setImages(Array.from(event.target.files || []))}
+          />
+        </div>
+
+        <div className="field-full panel">
+          <TrailRouteMap
+            value={routeMap}
+            onChange={setRouteMap}
+            editable
+            title="Skica rute na mapi Crne Gore"
+            description="Uvecaj mapu po potrebi, pa misem ili prstom iscrtaj kako staza ide."
+            helperText="Ovo je opciono, ali korisnicima mnogo znaci da vide otprilike kuda ide staza. Zelena tacka je pocetak, narandzasta kraj."
+            emptyMessage="Jos nema nacrtane putanje. Ako hoces, iscrtaj rutu prije cuvanja staze."
           />
         </div>
 

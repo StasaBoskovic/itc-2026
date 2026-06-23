@@ -2,6 +2,11 @@ import { pool } from "./db.js";
 
 export async function ensureSchema() {
   await pool.query(`
+    ALTER TABLE trails
+    ADD COLUMN IF NOT EXISTS route_map_data JSONB
+  `);
+
+  await pool.query(`
     ALTER TABLE app_users
     ADD COLUMN IF NOT EXISTS first_name VARCHAR(60),
     ADD COLUMN IF NOT EXISTS last_name VARCHAR(60),
@@ -20,4 +25,3 @@ export async function ensureSchema() {
     )
   `);
 }
-
