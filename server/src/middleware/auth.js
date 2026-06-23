@@ -44,3 +44,13 @@ export function requireAdmin(req, res, next) {
   next();
 }
 
+export function requireStandardUser(req, res, next) {
+  if (!req.user || req.user.role !== "user") {
+    return res.status(403).json({
+      message:
+        "Samo obicni korisnici mogu da ostavljaju komentare, ocjene i biraju omiljene staze.",
+    });
+  }
+
+  next();
+}

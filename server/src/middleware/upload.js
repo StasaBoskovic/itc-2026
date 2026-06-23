@@ -44,8 +44,9 @@ function buildUpload(folderName, limit) {
     limits: {
       fileSize: 5 * 1024 * 1024,
     },
-  }).array("images", limit);
+  });
 }
 
-export const trailGalleryUpload = buildUpload("trails", 10);
-export const commentImagesUpload = buildUpload("comments", 5);
+export const trailGalleryUpload = buildUpload("trails", 10).array("images", 10);
+export const commentImagesUpload = buildUpload("comments", 5).array("images", 5);
+export const profileImageUpload = buildUpload("profiles", 1).single("profile_image");

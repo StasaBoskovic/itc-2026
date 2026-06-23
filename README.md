@@ -119,10 +119,4 @@ Poslije toga se ponovo prijavi sa tim nalogom i dobices pristup stranici za doda
 
 ## Napomena
 
-Slike se cuvaju lokalno u `server/uploads`. Ako budes htio kasnije, mozemo sljedeci korak da uradimo:
-
-- editovanje i brisanje komentara
-- editovanje staza
-- mapa sa Leaflet ili Google Maps prikazom koordinata
-- omiljene staze
-- pretraga po gradu, duzini i tezini zajedno
+Slike se cuvaju lokalno u `server/uploads`. 

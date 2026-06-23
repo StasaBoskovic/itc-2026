@@ -53,15 +53,31 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero-copy">
           <span className="eyebrow">MonTrails Montenegro</span>
-          <h1>Nadji pjesacke i planinarske staze koje vrijedi dozivjeti.</h1>
+          <h1>Pronadji zelene horizonte, staze i vrhove Crne Gore.</h1>
           <p>
             Jedno mjesto za pregled staza, tezine, uspona, komentara, slika i
             utisaka planinara iz cijele Crne Gore.
           </p>
+
+          <div className="hero-stat-grid">
+            <div className="hero-stat-card">
+              <strong>{loading ? "--" : trails.length}</strong>
+              <span>staza u prikazu</span>
+            </div>
+            <div className="hero-stat-card">
+              <strong>{difficulties.length}</strong>
+              <span>nivoa tezine</span>
+            </div>
+            <div className="hero-stat-card">
+              <strong>1-5</strong>
+              <span>zvjezdica utiska</span>
+            </div>
+          </div>
         </div>
 
         <div className="hero-panel">
-          <h2>Pretraga</h2>
+          <span className="eyebrow">Pametna pretraga</span>
+          <h2>Nadji stazu po gradu, nazivu i tezini.</h2>
           <label className="field">
             <span>Naziv ili grad</span>
             <input
@@ -86,6 +102,11 @@ export default function HomePage() {
               ))}
             </select>
           </label>
+
+          <div className="search-note">
+            Idealno za brzo trazenje novih staza prije vikend ture ili kratke
+            setnje u prirodi.
+          </div>
         </div>
       </section>
 
@@ -116,4 +137,3 @@ export default function HomePage() {
     </div>
   );
 }
-

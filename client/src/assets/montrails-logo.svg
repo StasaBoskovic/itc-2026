@@ -1,0 +1,69 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="outerRing" x1="78" y1="60" x2="430" y2="458" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8FBC57"/>
+      <stop offset="1" stop-color="#1A5A33"/>
+    </linearGradient>
+    <radialGradient id="skyGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 168) rotate(90) scale(212)">
+      <stop stop-color="#F7FFE2"/>
+      <stop offset="0.55" stop-color="#DDF29A"/>
+      <stop offset="1" stop-color="#84B74B"/>
+    </radialGradient>
+    <linearGradient id="mountainDark" x1="214" y1="140" x2="214" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C522A"/>
+      <stop offset="1" stop-color="#083A1E"/>
+    </linearGradient>
+    <linearGradient id="mountainMid" x1="320" y1="180" x2="320" y2="382" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3E8B3D"/>
+      <stop offset="1" stop-color="#134D29"/>
+    </linearGradient>
+    <linearGradient id="hillLight" x1="210" y1="288" x2="210" y2="434" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#85B73E"/>
+      <stop offset="1" stop-color="#2F6D31"/>
+    </linearGradient>
+    <linearGradient id="hillDark" x1="342" y1="300" x2="342" y2="446" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#225F30"/>
+      <stop offset="1" stop-color="#0A341A"/>
+    </linearGradient>
+    <linearGradient id="pathGlow" x1="270" y1="322" x2="290" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F6B5"/>
+      <stop offset="1" stop-color="#C5D85F"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="228" fill="url(#outerRing)"/>
+  <circle cx="256" cy="256" r="214" fill="#054A26"/>
+  <circle cx="256" cy="256" r="204" fill="url(#skyGlow)"/>
+
+  <path d="M64 178C81 164 100 154 121 154C144 154 165 167 180 182C193 174 210 170 228 170C262 170 292 184 314 208C333 194 355 186 379 186C407 186 431 198 448 220V248H64V178Z" fill="white" fill-opacity="0.82"/>
+  <ellipse cx="132" cy="130" rx="38" ry="7" fill="white" fill-opacity="0.72"/>
+  <ellipse cx="358" cy="150" rx="42" ry="7" fill="white" fill-opacity="0.68"/>
+  <ellipse cx="402" cy="196" rx="29" ry="6" fill="white" fill-opacity="0.58"/>
+
+  <path d="M134 298L220 188L255 234V394H116L134 298Z" fill="#2C7A35"/>
+  <path d="M255 146L382 320H128L202 224L255 146Z" fill="url(#mountainDark)"/>
+  <path d="M304 210L386 320H224L272 252L304 210Z" fill="url(#mountainMid)"/>
+  <path d="M255 146L285 246L255 234V146Z" fill="#FAFFF4"/>
+  <path d="M192 224L220 188L234 270L192 224Z" fill="#F4F7D5"/>
+  <path d="M308 216L334 248L312 276L294 240L308 216Z" fill="#EAF3B8"/>
+  <path d="M338 248L360 274L336 306L318 272L338 248Z" fill="#EAF0C2"/>
+  <path d="M232 246L255 234L255 394H170L232 246Z" fill="#155F2E" fill-opacity="0.66"/>
+
+  <path d="M80 344C130 318 182 302 244 302C306 302 356 320 432 356V470H80V344Z" fill="url(#hillLight)"/>
+  <path d="M232 328C286 304 336 308 432 350V470H170C180 424 198 378 232 328Z" fill="url(#hillDark)"/>
+  <path d="M64 380C116 342 172 332 214 336C280 342 332 374 448 444V470H64V380Z" fill="#0C401F"/>
+
+  <path d="M286 326C270 336 244 356 226 370C212 380 213 396 233 404C251 412 248 426 226 438L196 454C232 452 262 444 296 430C322 420 325 402 305 391C287 380 290 366 308 351C323 339 337 329 352 320L286 326Z" fill="url(#pathGlow)"/>
+
+  <g fill="#073A1C">
+    <path d="M72 418L89 382L106 418H96V458H82V418H72Z"/>
+    <path d="M92 392L116 342L141 392H127V460H106V392H92Z"/>
+    <path d="M122 432L136 402L149 432H142V460H129V432H122Z"/>
+    <path d="M336 434L352 398L369 434H360V460H345V434H336Z"/>
+    <path d="M384 416L404 370L424 416H413V460H395V416H384Z"/>
+    <path d="M420 388L447 332L473 388H459V460H437V388H420Z"/>
+  </g>
+
+  <circle cx="256" cy="256" r="228" stroke="#2B6F2D" stroke-width="10"/>
+</svg>
+

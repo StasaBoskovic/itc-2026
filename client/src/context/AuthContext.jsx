@@ -15,26 +15,33 @@ export function AuthProvider({ children }) {
   });
   const [booting, setBooting] = useState(true);
 
+  function syncUser(userData) {
+    setUser(userData);
+
+    if (userData) {
+      localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    } else {
+      localStorage.removeItem(USER_KEY);
+    }
+  }
+
   useEffect(() => {
     async function hydrateAuth() {
       if (!token) {
-        setUser(null);
+        syncUser(null);
         localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
         setBooting(false);
         return;
       }
 
       try {
         const { data } = await api.get("/auth/me", authConfig(token));
-        setUser(data);
+        syncUser(data);
         localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data));
       } catch (_error) {
         setToken(null);
-        setUser(null);
+        syncUser(null);
         localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
       } finally {
         setBooting(false);
       }
@@ -46,26 +53,33 @@ export function AuthProvider({ children }) {
   async function login(credentials) {
     const { data } = await api.post("/auth/login", credentials);
     setToken(data.token);
-    setUser(data.user);
+    syncUser(data.user);
     localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     return data.user;
   }
 
   async function register(payload) {
     const { data } = await api.post("/auth/register", payload);
     setToken(data.token);
-    setUser(data.user);
+    syncUser(data.user);
     localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     return data.user;
+  }
+
+  async function refreshUser() {
+    if (!token) {
+      return null;
+    }
+
+    const { data } = await api.get("/auth/me", authConfig(token));
+    syncUser(data);
+    return data;
   }
 
   function logout() {
     setToken(null);
-    setUser(null);
+    syncUser(null);
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
   }
 
   return (
@@ -74,7 +88,9 @@ export function AuthProvider({ children }) {
         booting,
         login,
         logout,
+        refreshUser,
         register,
+        syncUser,
         token,
         user,
       }}
@@ -93,4 +109,3 @@ export function useAuth() {
 
   return context;
 }
-

@@ -5,11 +5,13 @@ import {
   attachUserIfPresent,
   requireAdmin,
   requireAuth,
+  requireStandardUser,
 } from "../middleware/auth.js";
 import {
   commentImagesUpload,
   trailGalleryUpload,
 } from "../middleware/upload.js";
+import { getUserIdentityById } from "../userProfile.js";
 
 const router = express.Router();
 
@@ -53,9 +55,12 @@ async function updateAverageRating(trailId, client = pool) {
     `
       UPDATE trails
       SET average_rating = (
-        SELECT COALESCE(ROUND(AVG(stars)::numeric, 2), 0)
+        SELECT COALESCE(ROUND(AVG(ratings.stars)::numeric, 2), 0)
         FROM ratings
-        WHERE trail_id = $1
+        JOIN app_users ON app_users.id = ratings.user_id
+        JOIN roles ON roles.id = app_users.role_id
+        WHERE ratings.trail_id = $1
+          AND roles.role_name = 'user'
       )
       WHERE id = $1
     `,
@@ -104,7 +109,22 @@ router.get("/", async (req, res, next) => {
           t.length_km,
           t.elevation_gain,
           t.highest_point,
-          t.average_rating,
+          (
+            SELECT COALESCE(ROUND(AVG(ratings.stars)::numeric, 2), 0)
+            FROM ratings
+            JOIN app_users ON app_users.id = ratings.user_id
+            JOIN roles ON roles.id = app_users.role_id
+            WHERE ratings.trail_id = t.id
+              AND roles.role_name = 'user'
+          ) AS average_rating,
+          (
+            SELECT COUNT(*)::int
+            FROM ratings
+            JOIN app_users ON app_users.id = ratings.user_id
+            JOIN roles ON roles.id = app_users.role_id
+            WHERE ratings.trail_id = t.id
+              AND roles.role_name = 'user'
+          ) AS rating_count,
           t.camping_allowed,
           t.description,
           d.name AS difficulty,
@@ -143,6 +163,22 @@ router.get("/:id", async (req, res, next) => {
       `
         SELECT
           t.*,
+          (
+            SELECT COALESCE(ROUND(AVG(ratings.stars)::numeric, 2), 0)
+            FROM ratings
+            JOIN app_users ON app_users.id = ratings.user_id
+            JOIN roles ON roles.id = app_users.role_id
+            WHERE ratings.trail_id = t.id
+              AND roles.role_name = 'user'
+          ) AS average_rating,
+          (
+            SELECT COUNT(*)::int
+            FROM ratings
+            JOIN app_users ON app_users.id = ratings.user_id
+            JOIN roles ON roles.id = app_users.role_id
+            WHERE ratings.trail_id = t.id
+              AND roles.role_name = 'user'
+          ) AS rating_count,
           d.name AS difficulty,
           e.status_name AS ecological_status,
           u.username AS created_by_username
@@ -182,7 +218,13 @@ router.get("/:id", async (req, res, next) => {
             comments.id,
             comments.comment_text,
             comments.created_at,
+            app_users.id AS user_id,
             app_users.username,
+            app_users.first_name,
+            app_users.last_name,
+            app_users.age,
+            app_users.bio,
+            app_users.profile_image_url,
             COALESCE(
               json_agg(
                 json_build_object('id', comment_images.id, 'image_url', comment_images.image_url)
@@ -191,9 +233,19 @@ router.get("/:id", async (req, res, next) => {
             ) AS images
           FROM comments
           JOIN app_users ON app_users.id = comments.user_id
+          JOIN roles ON roles.id = app_users.role_id
           LEFT JOIN comment_images ON comment_images.comment_id = comments.id
           WHERE comments.trail_id = $1
-          GROUP BY comments.id, app_users.username
+            AND roles.role_name = 'user'
+          GROUP BY
+            comments.id,
+            app_users.id,
+            app_users.username,
+            app_users.first_name,
+            app_users.last_name,
+            app_users.age,
+            app_users.bio,
+            app_users.profile_image_url
           ORDER BY comments.created_at DESC
         `,
         [trailId]
@@ -201,8 +253,18 @@ router.get("/:id", async (req, res, next) => {
     ]);
 
     let userRating = null;
+    let isFavorite = false;
 
-    if (req.user) {
+    if (req.user?.role === "user") {
+      const favoriteResult = await query(
+        "SELECT id FROM favorite_trails WHERE user_id = $1 AND trail_id = $2",
+        [req.user.id, trailId]
+      );
+
+      isFavorite = Boolean(favoriteResult.rows[0]);
+    }
+
+    if (req.user?.role === "user") {
       const ratingResult = await query(
         "SELECT stars FROM ratings WHERE user_id = $1 AND trail_id = $2",
         [req.user.id, trailId]
@@ -217,6 +279,7 @@ router.get("/:id", async (req, res, next) => {
       terrains: terrainsResult.rows,
       comments: commentsResult.rows,
       userRating,
+      is_favorite: isFavorite,
     });
   } catch (error) {
     next(error);
@@ -337,7 +400,7 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
   }
 });
 
-router.post("/:id/rating", requireAuth, async (req, res, next) => {
+router.post("/:id/rating", requireAuth, requireStandardUser, async (req, res, next) => {
   try {
     const trailId = Number(req.params.id);
     const stars = Number(req.body.stars);
@@ -367,13 +430,27 @@ router.post("/:id/rating", requireAuth, async (req, res, next) => {
     await updateAverageRating(trailId);
 
     const trailResult = await query(
-      "SELECT average_rating FROM trails WHERE id = $1",
+      `
+        SELECT
+          t.average_rating,
+          (
+            SELECT COUNT(*)::int
+            FROM ratings
+            JOIN app_users ON app_users.id = ratings.user_id
+            JOIN roles ON roles.id = app_users.role_id
+            WHERE ratings.trail_id = t.id
+              AND roles.role_name = 'user'
+          ) AS rating_count
+        FROM trails t
+        WHERE t.id = $1
+      `,
       [trailId]
     );
 
     res.json({
       message: "Ocjena je sacuvana.",
       average_rating: trailResult.rows[0]?.average_rating || 0,
+      rating_count: trailResult.rows[0]?.rating_count || 0,
       user_rating: stars,
     });
   } catch (error) {
@@ -384,6 +461,7 @@ router.post("/:id/rating", requireAuth, async (req, res, next) => {
 router.post(
   "/:id/comments",
   requireAuth,
+  requireStandardUser,
   commentImagesUpload,
   async (req, res, next) => {
     const client = await pool.connect();
@@ -431,11 +509,19 @@ router.post(
 
       await client.query("COMMIT");
 
+      const commentAuthor = await getUserIdentityById(req.user.id);
+
       res.status(201).json({
         id: comment.id,
         comment_text: comment.comment_text,
         created_at: comment.created_at,
+        user_id: req.user.id,
         username: req.user.username,
+        first_name: commentAuthor?.first_name || "",
+        last_name: commentAuthor?.last_name || "",
+        age: commentAuthor?.age ?? null,
+        bio: commentAuthor?.bio || "",
+        profile_image_url: commentAuthor?.profile_image_url || "",
         images,
       });
     } catch (error) {

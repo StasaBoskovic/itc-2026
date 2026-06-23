@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import AuthShowcase from "../components/AuthShowcase";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
@@ -21,7 +22,7 @@ export default function RegisterPage() {
 
     try {
       await register(form);
-      navigate("/");
+      navigate("/trails");
     } catch (submissionError) {
       setError(
         submissionError.response?.data?.message ||
@@ -34,65 +35,71 @@ export default function RegisterPage() {
 
   return (
     <section className="auth-page">
-      <form className="panel auth-form" onSubmit={handleSubmit}>
-        <span className="eyebrow">Novi nalog</span>
-        <h1>Registracija</h1>
-        <p>Kreiraj nalog da bi mogao da komentarises i ocjenjujes staze.</p>
+      <div className="auth-layout">
+        <AuthShowcase
+          title="Napravi profil za svoje prirodne avanture."
+          description="Registruj se i dodaj svoje utiske, ocjene i fotografije staza koje zelis da preporucis drugima."
+        />
 
-        <label className="field">
-          <span>Username</span>
-          <input
-            type="text"
-            required
-            value={form.username}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                username: event.target.value,
-              }))
-            }
-          />
-        </label>
+        <form className="panel auth-form" onSubmit={handleSubmit}>
+          <span className="eyebrow">Novi nalog</span>
+          <h1>Registracija</h1>
+          <p>Kreiraj nalog da bi mogao da komentarises i ocjenjujes staze.</p>
 
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            required
-            value={form.email}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, email: event.target.value }))
-            }
-          />
-        </label>
+          <label className="field">
+            <span>Username</span>
+            <input
+              type="text"
+              required
+              value={form.username}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  username: event.target.value,
+                }))
+              }
+            />
+          </label>
 
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            minLength="6"
-            required
-            value={form.password}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                password: event.target.value,
-              }))
-            }
-          />
-        </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
+            />
+          </label>
 
-        {error && <p className="form-error">{error}</p>}
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              minLength="6"
+              required
+              value={form.password}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+            />
+          </label>
 
-        <button type="submit" className="primary-button" disabled={loading}>
-          {loading ? "Kreiranje..." : "Registruj se"}
-        </button>
+          {error && <p className="form-error">{error}</p>}
 
-        <p className="auth-switch">
-          Vec imas nalog? <Link to="/login">Prijavi se</Link>
-        </p>
-      </form>
+          <button type="submit" className="primary-button" disabled={loading}>
+            {loading ? "Kreiranje..." : "Registruj se"}
+          </button>
+
+          <p className="auth-switch">
+            Vec imas nalog? <Link to="/login">Prijavi se</Link>
+          </p>
+        </form>
+      </div>
     </section>
   );
 }
-

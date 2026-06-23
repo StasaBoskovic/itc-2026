@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import AuthShowcase from "../components/AuthShowcase";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
@@ -21,7 +22,7 @@ export default function LoginPage() {
 
     try {
       await login(form);
-      navigate(location.state?.from?.pathname || "/");
+      navigate(location.state?.from?.pathname || "/trails");
     } catch (submissionError) {
       setError(
         submissionError.response?.data?.message || "Prijava nije uspjela."
@@ -33,48 +34,58 @@ export default function LoginPage() {
 
   return (
     <section className="auth-page">
-      <form className="panel auth-form" onSubmit={handleSubmit}>
-        <span className="eyebrow">Povratak na staze</span>
-        <h1>Prijava</h1>
-        <p>Prijavi se da ostavis komentar, slike i ocjenu staze.</p>
+      <div className="auth-layout">
+        <AuthShowcase
+          title="Udji u svoj vodic kroz crnogorske staze."
+          description="Prijavi se i otvori mapu utisaka, komentara i fotografija sa najljepsih planinskih i pjesackih ruta."
+        />
 
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            required
-            value={form.email}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, email: event.target.value }))
-            }
-          />
-        </label>
+        <form className="panel auth-form" onSubmit={handleSubmit}>
+          <span className="eyebrow">Ulaz u aplikaciju</span>
+          <h1>Prijava</h1>
+          <p>
+            Prijavi se da bi pristupio stazama, komentarima, slikama i
+            ocjenama.
+          </p>
 
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            required
-            value={form.password}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                password: event.target.value,
-              }))
-            }
-          />
-        </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
+            />
+          </label>
 
-        {error && <p className="form-error">{error}</p>}
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              required
+              value={form.password}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+            />
+          </label>
 
-        <button type="submit" className="primary-button" disabled={loading}>
-          {loading ? "Prijavljivanje..." : "Prijavi se"}
-        </button>
+          {error && <p className="form-error">{error}</p>}
 
-        <p className="auth-switch">
-          Nemas nalog? <Link to="/register">Registruj se</Link>
-        </p>
-      </form>
+          <button type="submit" className="primary-button" disabled={loading}>
+            {loading ? "Prijavljivanje..." : "Prijavi se"}
+          </button>
+
+          <p className="auth-switch">
+            Nemas nalog? <Link to="/register">Registruj se</Link>
+          </p>
+        </form>
+      </div>
     </section>
   );
 }

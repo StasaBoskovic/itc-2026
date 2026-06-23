@@ -1,9 +1,13 @@
 import { Link } from "react-router-dom";
 
 import { resolveAssetUrl } from "../api";
+import { formatReviewCount } from "../utils/trails";
 import StarRating from "./StarRating";
 
 export default function TrailCard({ trail }) {
+  const averageRating = Number(trail.average_rating || 0);
+  const ratingCount = Number(trail.rating_count || 0);
+
   return (
     <article className="trail-card">
       <img
@@ -28,9 +32,14 @@ export default function TrailCard({ trail }) {
         </div>
 
         <div className="trail-card-footer">
-          <div>
-            <StarRating value={Number(trail.average_rating || 0)} readOnly />
-            <small>{Number(trail.average_rating || 0).toFixed(1)} / 5</small>
+          <div className="trail-card-rating">
+            <span className="trail-card-review-count">
+              {formatReviewCount(ratingCount)}
+            </span>
+            <div className="trail-card-rating-row">
+              <StarRating value={averageRating} readOnly />
+              <small>{averageRating.toFixed(1)} / 5</small>
+            </div>
           </div>
 
           <Link to={`/trails/${trail.id}`} className="primary-link">
@@ -41,4 +50,3 @@ export default function TrailCard({ trail }) {
     </article>
   );
 }
-

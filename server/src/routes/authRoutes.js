@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { attachUserIfPresent, requireAuth } from "../middleware/auth.js";
 import { query } from "../db.js";
+import { getUserIdentityById, serializeUserIdentity } from "../userProfile.js";
 
 dotenv.config();
 
@@ -47,26 +48,20 @@ router.post("/register", async (req, res, next) => {
           SELECT $1, $2, $3, id
           FROM roles
           WHERE role_name = 'user'
-          RETURNING id, username, email, created_at, role_id
+          RETURNING id
         )
-        SELECT new_user.id, new_user.username, new_user.email, new_user.created_at, roles.role_name
+        SELECT id
         FROM new_user
-        JOIN roles ON roles.id = new_user.role_id
       `,
       [username.trim(), email.trim().toLowerCase(), hashedPassword]
     );
 
-    const user = rows[0];
-    const token = signToken(user);
+    const identity = await getUserIdentityById(rows[0].id);
+    const token = signToken(identity);
 
     res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role_name,
-      },
+      user: serializeUserIdentity(identity),
     });
   } catch (error) {
     if (error.code === "23505") {
@@ -111,16 +106,12 @@ router.post("/login", async (req, res, next) => {
       return res.status(401).json({ message: "Pogresan email ili password." });
     }
 
+    const fullUser = await getUserIdentityById(user.id);
     const token = signToken(user);
 
     res.json({
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role_name,
-      },
+      user: serializeUserIdentity(fullUser),
     });
   } catch (error) {
     next(error);
@@ -129,32 +120,16 @@ router.post("/login", async (req, res, next) => {
 
 router.get("/me", attachUserIfPresent, requireAuth, async (req, res, next) => {
   try {
-    const { rows } = await query(
-      `
-        SELECT app_users.id, app_users.username, app_users.email, roles.role_name
-        FROM app_users
-        JOIN roles ON roles.id = app_users.role_id
-        WHERE app_users.id = $1
-      `,
-      [req.user.id]
-    );
-
-    const user = rows[0];
+    const user = await getUserIdentityById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ message: "Korisnik nije pronadjen." });
     }
 
-    res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role_name,
-    });
+    res.json(serializeUserIdentity(user));
   } catch (error) {
     next(error);
   }
 });
 
 export default router;
-

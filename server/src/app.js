@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.js";
 import metaRoutes from "./routes/metaRoutes.js";
 import trailRoutes from "./routes/trailRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/meta", metaRoutes);
 app.use("/api/trails", trailRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((error, _req, res, _next) => {
   console.error(error);

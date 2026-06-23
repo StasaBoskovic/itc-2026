@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api, authConfig } from "../api";
+import BackButton from "../components/BackButton";
+import FileUploadField from "../components/FileUploadField";
 import { useAuth } from "../context/AuthContext";
 
 const initialForm = {
@@ -106,6 +108,8 @@ export default function AdminPage() {
 
   return (
     <section className="content-section">
+      <BackButton />
+
       <div className="section-heading">
         <div>
           <span className="eyebrow">Admin panel</span>
@@ -319,16 +323,17 @@ export default function AdminPage() {
           <span>Kampovanje je dozvoljeno</span>
         </label>
 
-        <label className="field field-full">
-          <span>Slike staze</span>
-          <input
-            type="file"
+        <div className="field-full">
+          <FileUploadField
+            label="Slike staze"
             accept="image/*"
             multiple
+            files={images}
+            buttonLabel="Izaberi slike"
+            placeholder="Dodaj naslovne i pratece slike staze."
             onChange={(event) => setImages(Array.from(event.target.files || []))}
           />
-          <small>{images.length} izabranih slika</small>
-        </label>
+        </div>
 
         <div className="field field-full">
           <span>Tipovi terena</span>
@@ -356,4 +361,3 @@ export default function AdminPage() {
     </section>
   );
 }
-
