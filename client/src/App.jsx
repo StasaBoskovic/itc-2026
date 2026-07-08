@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import Header from "./components/Header";
 import { useAuth } from "./context/AuthContext";
+import AdminActivityPage from "./pages/AdminActivityPage";
 import AdminPage from "./pages/AdminPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -104,6 +105,22 @@ export default function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/trails/:trailId/edit"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/activity"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminActivityPage />
                 </ProtectedRoute>
               }
             />

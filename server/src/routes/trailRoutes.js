@@ -1,4 +1,7 @@
+import fs from "fs/promises";
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { pool, query } from "../db.js";
 import {
@@ -19,6 +22,10 @@ const MAP_WIDTH = 1000;
 const MAP_HEIGHT = 700;
 const MAX_ROUTE_STROKES = 24;
 const MAX_ROUTE_POINTS = 4000;
+const currentFile = fileURLToPath(import.meta.url);
+const currentDirectory = path.dirname(currentFile);
+const uploadsRoot = path.resolve(currentDirectory, "../../uploads");
+const normalizedUploadsRoot = path.resolve(uploadsRoot).toLowerCase();
 
 router.use(attachUserIfPresent);
 
@@ -122,6 +129,102 @@ function parseRouteMap(value) {
     version: 1,
     strokes: normalizedStrokes,
   };
+}
+
+function resolveUploadAssetPath(assetUrl) {
+  if (!assetUrl || typeof assetUrl !== "string" || !assetUrl.startsWith("/uploads/")) {
+    return null;
+  }
+
+  const relativePath = assetUrl.replace(/^\/uploads\//, "");
+  const absolutePath = path.resolve(uploadsRoot, relativePath);
+  const normalizedAbsolutePath = absolutePath.toLowerCase();
+
+  if (
+    normalizedAbsolutePath !== normalizedUploadsRoot &&
+    !normalizedAbsolutePath.startsWith(`${normalizedUploadsRoot}${path.sep}`.toLowerCase())
+  ) {
+    return null;
+  }
+
+  return absolutePath;
+}
+
+async function removeFilePaths(filePaths) {
+  await Promise.all(
+    filePaths.map(async (filePath) => {
+      if (!filePath) {
+        return;
+      }
+
+      try {
+        await fs.unlink(filePath);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          console.error("Ne mogu da obrisem fajl:", error);
+        }
+      }
+    })
+  );
+}
+
+async function removeUploadAssets(assetUrls) {
+  const filePaths = assetUrls
+    .map((assetUrl) => resolveUploadAssetPath(assetUrl))
+    .filter(Boolean);
+
+  await removeFilePaths(filePaths);
+}
+
+async function removeFreshUploads(files = []) {
+  const filePaths = files.map((file) => file.path).filter(Boolean);
+  await removeFilePaths(filePaths);
+}
+
+async function getTrailAssetUrls(trailId, client = pool) {
+  const [galleryResult, commentImagesResult] = await Promise.all([
+    client.query("SELECT image_url FROM trail_gallery WHERE trail_id = $1", [trailId]),
+    client.query(
+      `
+        SELECT comment_images.image_url
+        FROM comment_images
+        JOIN comments ON comments.id = comment_images.comment_id
+        WHERE comments.trail_id = $1
+      `,
+      [trailId]
+    ),
+  ]);
+
+  return {
+    galleryUrls: galleryResult.rows.map((row) => row.image_url).filter(Boolean),
+    commentImageUrls: commentImagesResult.rows
+      .map((row) => row.image_url)
+      .filter(Boolean),
+  };
+}
+
+async function replaceTrailTerrains(trailId, terrainIds, client = pool) {
+  await client.query("DELETE FROM trail_terrain WHERE trail_id = $1", [trailId]);
+
+  for (const terrainId of terrainIds) {
+    await client.query(
+      "INSERT INTO trail_terrain (trail_id, terrain_id) VALUES ($1, $2)",
+      [trailId, terrainId]
+    );
+  }
+}
+
+async function addTrailGalleryFiles(trailId, files, client = pool) {
+  if (!files?.length) {
+    return;
+  }
+
+  for (const file of files) {
+    await client.query(
+      "INSERT INTO trail_gallery (trail_id, image_url) VALUES ($1, $2)",
+      [trailId, `/uploads/trails/${file.filename}`]
+    );
+  }
 }
 
 async function updateAverageRating(trailId, client = pool) {
@@ -385,6 +488,7 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
     try {
       routeMapData = parseRouteMap(req.body.route_map_data);
     } catch (routeMapError) {
+      await removeFreshUploads(req.files);
       return res.status(400).json({ message: routeMapError.message });
     }
 
@@ -401,6 +505,7 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
       !difficulty_id ||
       !ecological_status_id
     ) {
+      await removeFreshUploads(req.files);
       return res
         .status(400)
         .json({ message: "Sva osnovna polja za stazu su obavezna." });
@@ -469,26 +574,209 @@ router.post("/", requireAuth, requireAdmin, trailGalleryUpload, async (req, res,
 
     const trailId = trailInsert.rows[0].id;
 
-    for (const terrainId of terrainIds) {
-      await client.query(
-        "INSERT INTO trail_terrain (trail_id, terrain_id) VALUES ($1, $2)",
-        [trailId, terrainId]
-      );
-    }
-
-    if (req.files?.length) {
-      for (const file of req.files) {
-        await client.query(
-          "INSERT INTO trail_gallery (trail_id, image_url) VALUES ($1, $2)",
-          [trailId, `/uploads/trails/${file.filename}`]
-        );
-      }
-    }
+    await replaceTrailTerrains(trailId, terrainIds, client);
+    await addTrailGalleryFiles(trailId, req.files, client);
 
     await client.query("COMMIT");
 
     res.status(201).json({
       message: "Staza je uspjesno dodata.",
+      trailId,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    await removeFreshUploads(req.files);
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+router.put("/:id", requireAuth, requireAdmin, trailGalleryUpload, async (req, res, next) => {
+  const client = await pool.connect();
+  let galleryUrlsToDelete = [];
+
+  try {
+    const trailId = Number(req.params.id);
+    const {
+      name,
+      city,
+      start_lat,
+      start_lng,
+      end_lat,
+      end_lng,
+      length_km,
+      elevation_gain,
+      highest_point,
+      difficulty_id,
+      ecological_status_id,
+      camping_allowed,
+      description,
+      terrain_ids,
+      replace_gallery,
+    } = req.body;
+
+    if (!Number.isInteger(trailId)) {
+      await removeFreshUploads(req.files);
+      return res.status(400).json({ message: "Neispravan ID staze." });
+    }
+
+    let routeMapData = null;
+
+    try {
+      routeMapData = parseRouteMap(req.body.route_map_data);
+    } catch (routeMapError) {
+      await removeFreshUploads(req.files);
+      return res.status(400).json({ message: routeMapError.message });
+    }
+
+    if (
+      !name ||
+      !city ||
+      !start_lat ||
+      !start_lng ||
+      !end_lat ||
+      !end_lng ||
+      !length_km ||
+      !elevation_gain ||
+      !highest_point ||
+      !difficulty_id ||
+      !ecological_status_id
+    ) {
+      await removeFreshUploads(req.files);
+      return res
+        .status(400)
+        .json({ message: "Sva osnovna polja za stazu su obavezna." });
+    }
+
+    const terrainIds = parseIdList(terrain_ids);
+    const shouldReplaceGallery = parseBoolean(replace_gallery);
+
+    await client.query("BEGIN");
+
+    if (!(await trailExists(trailId, client))) {
+      await client.query("ROLLBACK");
+      await removeFreshUploads(req.files);
+      return res.status(404).json({ message: "Staza nije pronadjena." });
+    }
+
+    await client.query(
+      `
+        UPDATE trails
+        SET
+          name = $1,
+          city = $2,
+          start_lat = $3,
+          start_lng = $4,
+          end_lat = $5,
+          end_lng = $6,
+          length_km = $7,
+          elevation_gain = $8,
+          highest_point = $9,
+          difficulty_id = $10,
+          ecological_status_id = $11,
+          camping_allowed = $12,
+          description = $13,
+          route_map_data = $14
+        WHERE id = $15
+      `,
+      [
+        name.trim(),
+        city.trim(),
+        Number(start_lat),
+        Number(start_lng),
+        Number(end_lat),
+        Number(end_lng),
+        Number(length_km),
+        Number(elevation_gain),
+        Number(highest_point),
+        Number(difficulty_id),
+        Number(ecological_status_id),
+        parseBoolean(camping_allowed),
+        description?.trim() || null,
+        routeMapData,
+        trailId,
+      ]
+    );
+
+    await replaceTrailTerrains(trailId, terrainIds, client);
+
+    if (shouldReplaceGallery) {
+      const galleryResult = await client.query(
+        "SELECT image_url FROM trail_gallery WHERE trail_id = $1",
+        [trailId]
+      );
+      galleryUrlsToDelete = galleryResult.rows
+        .map((row) => row.image_url)
+        .filter(Boolean);
+
+      await client.query("DELETE FROM trail_gallery WHERE trail_id = $1", [trailId]);
+    }
+
+    await addTrailGalleryFiles(trailId, req.files, client);
+
+    await client.query("COMMIT");
+    await removeUploadAssets(galleryUrlsToDelete);
+
+    res.json({
+      message: "Staza je uspjesno izmijenjena.",
+      trailId,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    await removeFreshUploads(req.files);
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+router.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
+  const client = await pool.connect();
+
+  try {
+    const trailId = Number(req.params.id);
+
+    if (!Number.isInteger(trailId)) {
+      return res.status(400).json({ message: "Neispravan ID staze." });
+    }
+
+    await client.query("BEGIN");
+
+    const trailResult = await client.query(
+      "SELECT id, name FROM trails WHERE id = $1",
+      [trailId]
+    );
+    const trail = trailResult.rows[0];
+
+    if (!trail) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Staza nije pronadjena." });
+    }
+
+    const { galleryUrls, commentImageUrls } = await getTrailAssetUrls(trailId, client);
+
+    await client.query(
+      `
+        DELETE FROM comment_images
+        USING comments
+        WHERE comment_images.comment_id = comments.id
+          AND comments.trail_id = $1
+      `,
+      [trailId]
+    );
+    await client.query("DELETE FROM comments WHERE trail_id = $1", [trailId]);
+    await client.query("DELETE FROM ratings WHERE trail_id = $1", [trailId]);
+    await client.query("DELETE FROM favorite_trails WHERE trail_id = $1", [trailId]);
+    await client.query("DELETE FROM trail_terrain WHERE trail_id = $1", [trailId]);
+    await client.query("DELETE FROM trail_gallery WHERE trail_id = $1", [trailId]);
+    await client.query("DELETE FROM trails WHERE id = $1", [trailId]);
+
+    await client.query("COMMIT");
+    await removeUploadAssets([...galleryUrls, ...commentImageUrls]);
+
+    res.json({
+      message: `Staza "${trail.name}" je obrisana.`,
       trailId,
     });
   } catch (error) {

@@ -4,7 +4,13 @@ import { resolveAssetUrl } from "../api";
 import { formatReviewCount } from "../utils/trails";
 import StarRating from "./StarRating";
 
-export default function TrailCard({ trail }) {
+export default function TrailCard({
+  trail,
+  showAdminActions = false,
+  onEdit,
+  onDelete,
+  deleting = false,
+}) {
   const averageRating = Number(trail.average_rating || 0);
   const ratingCount = Number(trail.rating_count || 0);
 
@@ -31,7 +37,13 @@ export default function TrailCard({ trail }) {
           <span>Vrh {trail.highest_point} m</span>
         </div>
 
-        <div className="trail-card-footer">
+        <div
+          className={
+            showAdminActions
+              ? "trail-card-footer trail-card-footer-admin"
+              : "trail-card-footer"
+          }
+        >
           <div className="trail-card-rating">
             <span className="trail-card-review-count">
               {formatReviewCount(ratingCount)}
@@ -42,9 +54,31 @@ export default function TrailCard({ trail }) {
             </div>
           </div>
 
-          <Link to={`/trails/${trail.id}`} className="primary-link">
-            Detalji
-          </Link>
+          <div className="trail-card-actions">
+            {showAdminActions && (
+              <>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={onEdit}
+                >
+                  Izmijeni
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button secondary-button-danger"
+                  onClick={onDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? "Brisanje..." : "Obrisi"}
+                </button>
+              </>
+            )}
+
+            <Link to={`/trails/${trail.id}`} className="primary-link">
+              Detalji
+            </Link>
+          </div>
         </div>
       </div>
     </article>

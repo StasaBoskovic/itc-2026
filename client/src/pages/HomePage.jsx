@@ -1,16 +1,23 @@
 import { useDeferredValue, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { api } from "../api";
+import { api, authConfig } from "../api";
 import TrailCard from "../components/TrailCard";
+import { useAuth } from "../context/AuthContext";
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const { token, user } = useAuth();
   const [trails, setTrails] = useState([]);
   const [difficulties, setDifficulties] = useState([]);
   const [search, setSearch] = useState("");
   const [difficultyId, setDifficultyId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [adminMessage, setAdminMessage] = useState("");
+  const [deletingTrailId, setDeletingTrailId] = useState(null);
   const deferredSearch = useDeferredValue(search);
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     async function loadDifficulties() {
@@ -47,6 +54,36 @@ export default function HomePage() {
 
     loadTrails();
   }, [deferredSearch, difficultyId]);
+
+  async function handleDelete(trail) {
+    const confirmed = window.confirm(
+      `Da li sigurno zelis da obrises stazu "${trail.name}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingTrailId(trail.id);
+    setAdminMessage("");
+    setError("");
+
+    try {
+      const { data } = await api.delete(
+        `/trails/${trail.id}`,
+        authConfig(token)
+      );
+
+      setTrails((current) => current.filter((item) => item.id !== trail.id));
+      setAdminMessage(data.message || "Staza je obrisana.");
+    } catch (deleteError) {
+      setError(
+        deleteError.response?.data?.message || "Brisanje staze nije uspjelo."
+      );
+    } finally {
+      setDeletingTrailId(null);
+    }
+  }
 
   return (
     <div className="page-stack">
@@ -121,6 +158,7 @@ export default function HomePage() {
 
         {loading && <div className="page-state">Ucitavanje staza...</div>}
         {error && <div className="page-state error-state">{error}</div>}
+        {adminMessage && <div className="form-success">{adminMessage}</div>}
 
         {!loading && !error && trails.length === 0 && (
           <div className="page-state">
@@ -130,7 +168,14 @@ export default function HomePage() {
 
         <div className="trail-grid">
           {trails.map((trail) => (
-            <TrailCard key={trail.id} trail={trail} />
+            <TrailCard
+              key={trail.id}
+              trail={trail}
+              showAdminActions={isAdmin}
+              onEdit={() => navigate(`/admin/trails/${trail.id}/edit`)}
+              onDelete={() => handleDelete(trail)}
+              deleting={deletingTrailId === trail.id}
+            />
           ))}
         </div>
       </section>

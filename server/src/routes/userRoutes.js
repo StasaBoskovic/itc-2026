@@ -1,8 +1,10 @@
+import { getAdminActivityOverview } from "../adminActivity.js";
 import express from "express";
 
 import { query } from "../db.js";
 import {
   attachUserIfPresent,
+  requireAdmin,
   requireAuth,
   requireStandardUser,
 } from "../middleware/auth.js";
@@ -54,6 +56,20 @@ router.get("/me", requireAuth, async (req, res, next) => {
     next(error);
   }
 });
+
+router.get(
+  "/me/activity-overview",
+  requireAuth,
+  requireAdmin,
+  async (_req, res, next) => {
+    try {
+      const overview = await getAdminActivityOverview();
+      res.json(overview);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.put("/me", requireAuth, profileImageUpload, async (req, res, next) => {
   try {

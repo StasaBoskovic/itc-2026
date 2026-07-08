@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import jwt from "jsonwebtoken";
 
+import { recordUserLoginActivity } from "../adminActivity.js";
 import { attachUserIfPresent, requireAuth } from "../middleware/auth.js";
 import { query } from "../db.js";
 import { getUserIdentityById, serializeUserIdentity } from "../userProfile.js";
@@ -58,6 +59,10 @@ router.post("/register", async (req, res, next) => {
 
     const identity = await getUserIdentityById(rows[0].id);
     const token = signToken(identity);
+    await recordUserLoginActivity({
+      userId: identity.id,
+      username: identity.username,
+    });
 
     res.status(201).json({
       token,
@@ -108,6 +113,10 @@ router.post("/login", async (req, res, next) => {
 
     const fullUser = await getUserIdentityById(user.id);
     const token = signToken(user);
+    await recordUserLoginActivity({
+      userId: fullUser.id,
+      username: fullUser.username,
+    });
 
     res.json({
       token,

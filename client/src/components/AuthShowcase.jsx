@@ -22,21 +22,17 @@ export default function AuthShowcase({ title, description }) {
   return (
     <aside className="auth-showcase">
       <div className="auth-showcase-top">
-        <img src={logo} alt="MonTrails logo" className="auth-showcase-logo" />
-
-        <div className="auth-showcase-copy">
+        <div className="auth-showcase-brand">
+          <img src={logo} alt="MonTrails logo" className="auth-showcase-logo" />
           <span className="eyebrow">MonTrails Montenegro</span>
-          <h2>{title}</h2>
-          <p>{description}</p>
         </div>
-      </div>
 
-      <div className="auth-atmosphere-card">
-        <span className="auth-atmosphere-label">Priroda. Staze. Utisci.</span>
-        <p>
-          Digitalni prostor za otkrivanje staza, dijeljenje fotografija i
-          planiranje narednog izlaska u prirodu.
-        </p>
+        <div className="auth-showcase-hero">
+          <div className="auth-showcase-copy">
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </div>
+        </div>
       </div>
 
       <div className="auth-postcard">

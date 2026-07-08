@@ -34,9 +34,14 @@ export default function Header() {
           )}
 
           {user?.role === "admin" && (
-            <NavLink to="/admin" className={linkClassName}>
-              Dodaj stazu
-            </NavLink>
+            <>
+              <NavLink to="/admin" className={linkClassName}>
+                Dodaj stazu
+              </NavLink>
+              <NavLink to="/admin/activity" className={linkClassName}>
+                Aktivnost korisnika
+              </NavLink>
+            </>
           )}
         </nav>
 

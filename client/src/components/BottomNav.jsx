@@ -21,10 +21,16 @@ export default function BottomNav() {
       </NavLink>
 
       {user.role === "admin" && (
-        <NavLink to="/admin" className={bottomLinkClassName}>
-          <span className="bottom-nav-icon bottom-nav-icon-admin" aria-hidden="true" />
-          <span>Dodaj</span>
-        </NavLink>
+        <>
+          <NavLink to="/admin" className={bottomLinkClassName}>
+            <span className="bottom-nav-icon bottom-nav-icon-admin" aria-hidden="true" />
+            <span>Dodaj</span>
+          </NavLink>
+          <NavLink to="/admin/activity" className={bottomLinkClassName}>
+            <span className="bottom-nav-icon bottom-nav-icon-activity" aria-hidden="true" />
+            <span>Aktivnost</span>
+          </NavLink>
+        </>
       )}
 
       <NavLink to="/profile" className={bottomLinkClassName}>

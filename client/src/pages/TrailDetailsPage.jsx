@@ -13,6 +13,11 @@ import { useAuth } from "../context/AuthContext";
 import { hasRouteMap } from "../utils/trailMap";
 import { getUserDisplayName } from "../utils/user";
 
+function formatCoordinate(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toFixed(6) : "--";
+}
+
 export default function TrailDetailsPage() {
   const { id } = useParams();
   const { token, user } = useAuth();
@@ -213,9 +218,15 @@ export default function TrailDetailsPage() {
               <strong>{trail.difficulty}</strong>
               <span>Tezina</span>
             </div>
-            <div className="stat-card">
-              <strong>{averageRating.toFixed(1)} / 5</strong>
-              <span>Prosjek korisnika</span>
+            <div className="stat-card stat-card-coordinate">
+              <strong>{formatCoordinate(trail.start_lat)}</strong>
+              <strong>{formatCoordinate(trail.start_lng)}</strong>
+              <span>Pocetna tacka</span>
+            </div>
+            <div className="stat-card stat-card-coordinate">
+              <strong>{formatCoordinate(trail.end_lat)}</strong>
+              <strong>{formatCoordinate(trail.end_lng)}</strong>
+              <span>Krajnja tacka</span>
             </div>
           </div>
         </div>

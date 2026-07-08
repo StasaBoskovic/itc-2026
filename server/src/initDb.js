@@ -24,4 +24,18 @@ export async function ensureSchema() {
       CONSTRAINT unique_user_favorite UNIQUE (user_id, trail_id)
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_login_activity (
+      id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      user_id INT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      username_snapshot VARCHAR(120) NOT NULL,
+      logged_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_login_activity_user_time
+    ON user_login_activity (user_id, logged_in_at DESC)
+  `);
 }
